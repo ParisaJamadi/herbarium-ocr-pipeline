@@ -1,0 +1,18 @@
+{
+  "summary": {
+    "total_records": 30,
+    "successful_extractions": 0,
+    "failed_extractions": 30
+  },
+  "coverage": {
+    "Taxonomy": {},
+    "Collection": {},
+    "Geography": {},
+    "Environment": {},
+    "Institutional": {},
+    "Determination": {},
+    "Quality": {}
+  },
+  "field_coverage_overall": {},
+  "confidence_distribution": {}
+}
