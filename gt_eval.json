@@ -1,6 +1,16 @@
 {
   "model": "gpt-4o",
-  "n_evaluated": 0,
-  "field_mean_similarity": {},
-  "overall_mean_similarity": null
+  "n_evaluated": 20,
+  "field_mean_similarity": {
+    "scientific_name": 0.7718,
+    "family": 0.9103,
+    "genus": 0.9108,
+    "country": 0.8434,
+    "elevation": 0.8276,
+    "type_status": 0.8012,
+    "institution_code": 0.7218,
+    "habitat": 0.7856,
+    "identified_by": 0.4086
+  },
+  "overall_mean_similarity": 0.7757
 }

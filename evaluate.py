@@ -54,22 +54,19 @@ def analyze_coverage(results_df, verbose=False):
             "non_empty_count": int(non_empty),
         }
     
-    # Analyze confidence scores if available
+    # Analyze confidence scores — GPT-4o returns "high"/"medium"/"low" strings
     if "confidence" in results_df.columns:
-        conf_scores = pd.to_numeric(results_df["confidence"], errors="coerce")
-        conf_scores = conf_scores.dropna()
-        
-        if len(conf_scores) > 0:
-            for score in conf_scores:
-                # Bin into brackets
-                if score >= 0.9:
-                    confidence_dist["0.9-1.0"] += 1
-                elif score >= 0.7:
-                    confidence_dist["0.7-0.9"] += 1
-                elif score >= 0.5:
-                    confidence_dist["0.5-0.7"] += 1
-                else:
-                    confidence_dist["0.0-0.5"] += 1
+        conf_col = (
+            results_df["confidence"]
+            .dropna()
+            .astype(str)
+            .str.strip()
+            .str.lower()
+        )
+        for level in ["high", "medium", "low"]:
+            count = int((conf_col == level).sum())
+            if count > 0:
+                confidence_dist[level] = count
     
     # Organize by category
     coverage_by_category = {}

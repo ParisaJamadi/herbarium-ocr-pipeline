@@ -9,48 +9,24 @@ Usage:
 
 import openai
 import pandas as pd
-import requests
-import base64
 import json
 import time
 import argparse
 import sys
 from dotenv import load_dotenv
 
+# Ensure UTF-8 output on Windows consoles (handles arrows, checkmarks, etc.)
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
+from utils import EXTRACTION_PROMPT, fetch_image_base64
+
 load_dotenv()
 
 XLSX_PATH = "techtest_herbariumdata.xlsx"
 MODEL = "gpt-4o"
-
-EXTRACTION_PROMPT = """You are an expert botanist and herbarium curator. Examine this herbarium sheet image carefully.
-
-Extract ALL of the following fields from labels, stamps, handwritten text, and printed text visible on the sheet:
-
-Return a JSON object with EXACTLY these fields (use null for any field not found):
-{
-  "scientific_name": "full scientific name including author if present",
-  "family": "plant family",
-  "genus": "genus name only",
-  "collector": "person(s) who collected the specimen",
-  "collection_date": "date as written on label (verbatim)",
-  "collection_date_normalized": "date in YYYY-MM-DD format if possible, else null",
-  "locality": "location description as written",
-  "country": "country name",
-  "habitat": "habitat description if present",
-  "elevation": "elevation as written (with units)",
-  "type_status": "e.g. HOLOTYPE, ISOTYPE, PARATYPE, or null if not a type",
-  "institution_code": "herbarium/institution abbreviation (e.g. K, BM, E, P)",
-  "barcode": "specimen barcode or accession number",
-  "identified_by": "person who identified/determined the species",
-  "identification_date": "date of identification if present",
-  "field_notes": "any additional notes on the label",
-  "label_language": "primary language of labels (e.g. English, Latin, French)",
-  "image_quality": "good/fair/poor - assess legibility of labels",
-  "confidence": "overall confidence in extraction: high/medium/low"
-}
-
-Return ONLY valid JSON, no explanation or markdown fences.
-"""
 
 
 def load_data():
@@ -59,46 +35,13 @@ def load_data():
     return df_main, df_new
 
 
-def fetch_image_base64(url: str, timeout: int = 30):
-    """Download image and return (base64_data, media_type) or (None, None) on failure."""
-    url = url.replace("zenodo.org/record/", "zenodo.org/records/")
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.9",
-        "Referer": "https://zenodo.org/"
-    }
-    try:
-        r = requests.get(url, headers=headers, timeout=timeout)
-        if r.status_code != 200:
-            print(f"  HTTP {r.status_code} for {url}", file=sys.stderr)
-            return None, None
-
-        # Validate it's actually an image, not an HTML error page
-        content_type = r.headers.get("content-type", "").split(";")[0].strip()
-        if not content_type.startswith("image/"):
-            print(f"  Not an image (got {content_type})", file=sys.stderr)
-            return None, None
-
-        # Double-check by looking at the first bytes (JPEG starts with FF D8)
-        content = r.content
-        if len(content) < 100:
-            print(f"  Response too small ({len(content)} bytes), likely an error page", file=sys.stderr)
-            return None, None
-
-        return base64.standard_b64encode(content).decode("utf-8"), content_type
-
-    except Exception as e:
-        print(f"  Error fetching {url}: {e}", file=sys.stderr)
-        return None, None
-
-
 def extract_from_image(client: openai.OpenAI, image_b64: str, media_type: str, row_meta: dict) -> dict:
     """Send image to GPT-4o and parse extraction result."""
     try:
         response = client.chat.completions.create(
             model=MODEL,
-            max_tokens=1000,
+            max_tokens=1500,
+            temperature=0,
             messages=[{
                 "role": "user",
                 "content": [
@@ -161,7 +104,7 @@ def run_extraction(sample_size: int, output_path: str, delay: float = 1.5):
         url = row["jpegURL"]
         print(f"[{i+1}/{len(sample)}] {row['occurrenceID']}")
 
-        img_b64, media_type = fetch_image_base64(url)
+        img_b64, media_type = fetch_image_base64(url, occurrence_id=str(row.get("occurrenceID", "")))
         if img_b64 is None:
             results.append({
                 "index": row["index"],

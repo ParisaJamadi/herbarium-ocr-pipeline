@@ -20,7 +20,14 @@ import subprocess
 import sys
 import os
 from dotenv import load_dotenv
+
 load_dotenv()
+
+# UTF-8 output on Windows consoles
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
 def check_api_key():
     if not os.environ.get("OPENAI_API_KEY"):
@@ -30,8 +37,10 @@ def check_api_key():
 
 
 def run(cmd):
-    print(f"\n>>> {' '.join(cmd)}\n{'─'*60}")
-    subprocess.run(cmd, check=True)
+    print(f"\n>>> {' '.join(cmd)}\n{'-'*60}")
+    env = os.environ.copy()
+    env["PYTHONIOENCODING"] = "utf-8"
+    subprocess.run(cmd, check=True, env=env)
 
 
 def main():
@@ -77,7 +86,7 @@ def main():
 
     print("\n" + "=" * 60)
     print("✓ Pipeline complete. Output files:")
-    print("  results.csv           — extracted data for 250 new specimens")
+    print(f"  results.csv           — extracted data for {args.sample} new specimens")
     print("  gt_eval.json          — ground-truth accuracy summary")
     print("  gt_eval_detail.csv    — per-record field comparison vs ground truth")
     print("  coverage_report.json  — field coverage + confidence statistics")

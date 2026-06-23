@@ -1,18 +1,161 @@
 {
   "summary": {
     "total_records": 30,
-    "successful_extractions": 0,
-    "failed_extractions": 30
+    "successful_extractions": 30,
+    "failed_extractions": 0
   },
   "coverage": {
-    "Taxonomy": {},
-    "Collection": {},
-    "Geography": {},
-    "Environment": {},
-    "Institutional": {},
-    "Determination": {},
-    "Quality": {}
+    "Taxonomy": {
+      "scientific_name": {
+        "total_records": 30,
+        "non_null_count": 30,
+        "coverage_percent": 100.0,
+        "non_empty_count": 30
+      },
+      "family": {
+        "total_records": 30,
+        "non_null_count": 3,
+        "coverage_percent": 10.0,
+        "non_empty_count": 30
+      },
+      "genus": {
+        "total_records": 30,
+        "non_null_count": 30,
+        "coverage_percent": 100.0,
+        "non_empty_count": 30
+      }
+    },
+    "Collection": {
+      "collector": {
+        "total_records": 30,
+        "non_null_count": 30,
+        "coverage_percent": 100.0,
+        "non_empty_count": 30
+      },
+      "collection_date": {
+        "total_records": 30,
+        "non_null_count": 26,
+        "coverage_percent": 86.67,
+        "non_empty_count": 30
+      },
+      "collection_date_normalized": {
+        "total_records": 30,
+        "non_null_count": 25,
+        "coverage_percent": 83.33,
+        "non_empty_count": 30
+      }
+    },
+    "Geography": {
+      "locality": {
+        "total_records": 30,
+        "non_null_count": 30,
+        "coverage_percent": 100.0,
+        "non_empty_count": 30
+      },
+      "country": {
+        "total_records": 30,
+        "non_null_count": 27,
+        "coverage_percent": 90.0,
+        "non_empty_count": 30
+      }
+    },
+    "Environment": {
+      "habitat": {
+        "total_records": 30,
+        "non_null_count": 15,
+        "coverage_percent": 50.0,
+        "non_empty_count": 30
+      },
+      "elevation": {
+        "total_records": 30,
+        "non_null_count": 14,
+        "coverage_percent": 46.67,
+        "non_empty_count": 30
+      }
+    },
+    "Institutional": {
+      "institution_code": {
+        "total_records": 30,
+        "non_null_count": 30,
+        "coverage_percent": 100.0,
+        "non_empty_count": 30
+      },
+      "barcode": {
+        "total_records": 30,
+        "non_null_count": 30,
+        "coverage_percent": 100.0,
+        "non_empty_count": 30
+      },
+      "type_status": {
+        "total_records": 30,
+        "non_null_count": 7,
+        "coverage_percent": 23.33,
+        "non_empty_count": 30
+      }
+    },
+    "Determination": {
+      "identified_by": {
+        "total_records": 30,
+        "non_null_count": 21,
+        "coverage_percent": 70.0,
+        "non_empty_count": 30
+      },
+      "identification_date": {
+        "total_records": 30,
+        "non_null_count": 18,
+        "coverage_percent": 60.0,
+        "non_empty_count": 30
+      },
+      "field_notes": {
+        "total_records": 30,
+        "non_null_count": 20,
+        "coverage_percent": 66.67,
+        "non_empty_count": 30
+      }
+    },
+    "Quality": {
+      "label_language": {
+        "total_records": 30,
+        "non_null_count": 30,
+        "coverage_percent": 100.0,
+        "non_empty_count": 30
+      },
+      "image_quality": {
+        "total_records": 30,
+        "non_null_count": 30,
+        "coverage_percent": 100.0,
+        "non_empty_count": 30
+      },
+      "confidence": {
+        "total_records": 30,
+        "non_null_count": 30,
+        "coverage_percent": 100.0,
+        "non_empty_count": 30
+      }
+    }
   },
-  "field_coverage_overall": {},
-  "confidence_distribution": {}
+  "field_coverage_overall": {
+    "scientific_name": 100.0,
+    "family": 10.0,
+    "genus": 100.0,
+    "collector": 100.0,
+    "collection_date": 86.67,
+    "collection_date_normalized": 83.33,
+    "locality": 100.0,
+    "country": 90.0,
+    "habitat": 50.0,
+    "elevation": 46.67,
+    "institution_code": 100.0,
+    "barcode": 100.0,
+    "type_status": 23.33,
+    "identified_by": 70.0,
+    "identification_date": 60.0,
+    "field_notes": 66.67,
+    "label_language": 100.0,
+    "image_quality": 100.0,
+    "confidence": 100.0
+  },
+  "confidence_distribution": {
+    "high": 30
+  }
 }
