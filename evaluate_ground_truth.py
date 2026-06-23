@@ -30,14 +30,18 @@ XLSX_PATH = "techtest_herbariumdata.xlsx"
 MODEL = "gpt-4o"
 
 # Map extracted field names → ground truth column names in main_data
+# NOTE on column choices:
+#   locality      → "locality" (31% null), NOT "verbatimLocality" (99% null)
+#   collector     → "recordedBy" (1% null), NOT "verbatimRecordedBy" (100% null)
+#   elevation     → "elevation" (78% null), NOT "verbatimElevation" (87% null)
 FIELD_MAP = {
     "scientific_name": "scientificName",
     "family": "family",
     "genus": "genus",
     "country": "country",
-    "locality": "verbatimLocality",
-    "elevation": "verbatimElevation",
-    "collector": "verbatimRecordedBy",
+    "locality": "locality",
+    "elevation": "elevation",
+    "collector": "recordedBy",
     "type_status": "typeStatus",
     "institution_code": "institutionCode",
     "habitat": "habitat",
@@ -45,11 +49,93 @@ FIELD_MAP = {
 }
 
 
-def fuzzy(a, b):
-    """Fuzzy string similarity between two values (0–1). Returns None if either is null."""
-    if pd.isna(a) or pd.isna(b) or str(a) == "nan" or str(b) == "nan":
+INSTITUTION_ALIASES = {
+    # GT column stores short codes; GPT-4o may return full names or different codes
+    "rbge": "e",
+    "royal botanic garden edinburgh": "e",
+    "nhmuk": "nhmuk",
+    "nhm": "nhmuk",
+    "natural history museum": "nhmuk",
+    "bm": "nhmuk",
+    "k": "k",
+    "kew": "k",
+    "royal botanic gardens kew": "k",
+    "naturalis": "l",
+    "l": "l",
+    "bgbm": "b",
+    "b": "b",
+    "botanischer garten berlin": "b",
+    "mnhn": "mnhn",
+    "p": "mnhn",
+    "paris": "mnhn",
+    "br": "br",
+    "meise": "br",
+}
+
+
+def _norm_elevation(v) -> str:
+    """Strip units and normalise elevation to metres as a plain integer string.
+    Handles: '1200 m', '7000 ft', '7000 FT', '0-30 m', 2630.0 (float from GT)."""
+    import re
+    s = str(v).lower().strip()
+    is_feet = bool(re.search(r"\bft\b|\bfeet\b|\bfoot\b", s))
+
+    # Handle ranges like "0-30 m" → take midpoint
+    range_match = re.match(r"(\d+(?:\.\d+)?)\s*[-\u2013]\s*(\d+(?:\.\d+)?)", s)
+    if range_match:
+        mid = (float(range_match.group(1)) + float(range_match.group(2))) / 2
+        metres = mid * 0.3048 if is_feet else mid
+        return str(int(round(metres)))
+
+    num_match = re.match(r"(\d+(?:\.\d+)?)", s)
+    if num_match:
+        val = float(num_match.group(1))
+        metres = val * 0.3048 if is_feet else val
+        return str(int(round(metres)))
+    return s
+
+
+def _norm_scientific_name(v) -> str:
+    """Return first two tokens (genus + species epithet), dropping author citations."""
+    parts = str(v).strip().split()
+    return " ".join(parts[:2]).lower() if len(parts) >= 2 else str(v).lower().strip()
+
+
+def _norm_collector(v) -> str:
+    """Normalise collector name: 'Smith, J.' and 'J. Smith' both → 'smith j'."""
+    import re
+    s = re.sub(r"[^\w\s]", " ", str(v)).lower()
+    tokens = [t for t in s.split() if len(t) > 1 or t.isalpha()]
+    return " ".join(sorted(tokens))  # sort tokens to handle reordered name parts
+
+
+def _norm_institution(v) -> str:
+    s = str(v).lower().strip()
+    return INSTITUTION_ALIASES.get(s, s)
+
+
+def normalize(value, field: str) -> str:
+    """Field-specific normalization before fuzzy comparison."""
+    if pd.isna(value) or str(value) == "nan":
         return None
-    return SequenceMatcher(None, str(a).lower().strip(), str(b).lower().strip()).ratio()
+    if field == "elevation":
+        return _norm_elevation(value)
+    if field == "scientific_name":
+        return _norm_scientific_name(value)
+    if field == "collector":
+        return _norm_collector(value)
+    if field == "institution_code":
+        return _norm_institution(value)
+    return str(value).lower().strip()
+
+
+def fuzzy(a, b, field: str = ""):
+    """Fuzzy string similarity (0–1) with field-aware normalisation. Returns None if either is null."""
+    na = normalize(a, field)
+    nb = normalize(b, field)
+    if na is None or nb is None:
+        return None
+    return SequenceMatcher(None, na, nb).ratio()
 
 
 def extract(client: openai.OpenAI, img_b64: str, media_type: str) -> dict:
@@ -113,7 +199,7 @@ def run_gt_eval(sample_size: int, output_path: str, delay: float = 1.5, verbose:
         for ext_f, gt_f in FIELD_MAP.items():
             ext_val = extracted.get(ext_f)
             gt_val = row.get(gt_f)
-            sim = fuzzy(ext_val, gt_val)
+            sim = fuzzy(ext_val, gt_val, field=ext_f)
             row_result[f"ext_{ext_f}"] = ext_val
             row_result[f"gt_{gt_f}"] = gt_val
             row_result[f"sim_{ext_f}"] = round(sim, 4) if sim is not None else None

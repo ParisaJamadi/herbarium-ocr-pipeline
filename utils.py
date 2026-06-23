@@ -20,7 +20,7 @@ Extract ALL of the following fields from labels, stamps, handwritten text, and p
 Return a JSON object with EXACTLY these fields (use null for any field not found):
 {
   "scientific_name": "full scientific name including author if present",
-  "family": "plant family",
+  "family": "plant family — look for it printed on any label or stamp; also infer from scientific name if clearly identifiable (e.g. Rosa → Rosaceae)",
   "genus": "genus name only",
   "collector": "person(s) who collected the specimen",
   "collection_date": "date as written on label (verbatim)",

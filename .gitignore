@@ -1,1 +1,5 @@
 .env
+PREPARATION_GUIDE.md
+__pycache__/
+*.pyc
+sample_images/

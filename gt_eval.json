@@ -2,15 +2,17 @@
   "model": "gpt-4o",
   "n_evaluated": 20,
   "field_mean_similarity": {
-    "scientific_name": 0.7718,
-    "family": 0.9103,
+    "scientific_name": 0.783,
+    "family": 0.9764,
     "genus": 0.9108,
-    "country": 0.8434,
-    "elevation": 0.8276,
+    "country": 0.8026,
+    "locality": 0.5815,
+    "elevation": 0.4186,
+    "collector": 0.6331,
     "type_status": 0.8012,
-    "institution_code": 0.7218,
-    "habitat": 0.7856,
-    "identified_by": 0.4086
+    "institution_code": 0.6754,
+    "habitat": 0.669,
+    "identified_by": 0.3986
   },
-  "overall_mean_similarity": 0.7757
+  "overall_mean_similarity": 0.6955
 }
