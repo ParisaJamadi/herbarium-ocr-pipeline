@@ -2,17 +2,84 @@
   "model": "gpt-4o",
   "n_evaluated": 20,
   "field_mean_similarity": {
-    "scientific_name": 0.783,
-    "family": 0.9764,
-    "genus": 0.9108,
-    "country": 0.8026,
-    "locality": 0.5815,
-    "elevation": 0.4186,
-    "collector": 0.6331,
+    "scientific_name": 0.8717,
+    "family": 0.9751,
+    "genus": 0.9086,
+    "country": 0.7832,
+    "locality": 0.6584,
+    "elevation": 0.4691,
+    "collector": 0.7917,
     "type_status": 0.8012,
-    "institution_code": 0.6754,
-    "habitat": 0.669,
-    "identified_by": 0.3986
+    "institution_code": 1.0,
+    "habitat": 0.7668,
+    "identified_by": 0.553
   },
-  "overall_mean_similarity": 0.6955
+  "overall_mean_similarity": 0.7799,
+  "error_analysis": {
+    "Collector Name Formatting Difference": 14,
+    "Exact Match": 78,
+    "Hallucinated Value": 26,
+    "Institution Alias Difference": 7,
+    "Major Mismatch": 37,
+    "Missing Extraction": 4,
+    "Partial Match": 17
+  },
+  "field_error_analysis": {
+    "scientific_name": {
+      "Exact Match": 12,
+      "Major Mismatch": 4,
+      "Partial Match": 4
+    },
+    "family": {
+      "Exact Match": 17,
+      "Major Mismatch": 1,
+      "Missing Extraction": 2
+    },
+    "genus": {
+      "Exact Match": 17,
+      "Major Mismatch": 2,
+      "Partial Match": 1
+    },
+    "country": {
+      "Exact Match": 13,
+      "Major Mismatch": 6,
+      "Missing Extraction": 1
+    },
+    "locality": {
+      "Hallucinated Value": 7,
+      "Major Mismatch": 6,
+      "Partial Match": 7
+    },
+    "collector": {
+      "Collector Name Formatting Difference": 14,
+      "Exact Match": 1,
+      "Major Mismatch": 5
+    },
+    "institution_code": {
+      "Exact Match": 12,
+      "Hallucinated Value": 1,
+      "Institution Alias Difference": 7
+    },
+    "habitat": {
+      "Hallucinated Value": 8,
+      "Major Mismatch": 2,
+      "Partial Match": 3
+    },
+    "identified_by": {
+      "Hallucinated Value": 5,
+      "Major Mismatch": 4,
+      "Partial Match": 2
+    },
+    "elevation": {
+      "Exact Match": 3,
+      "Hallucinated Value": 4,
+      "Major Mismatch": 5
+    },
+    "type_status": {
+      "Exact Match": 3,
+      "Hallucinated Value": 1,
+      "Major Mismatch": 2,
+      "Missing Extraction": 1
+    }
+  }
 }

@@ -45,7 +45,7 @@ The pipeline downloads images via `jpegURL` and uses `occurrenceID` to route ins
 ## Setup
 
 ```bash
-pip install openai pandas openpyxl requests python-dotenv
+pip install openai pandas openpyxl requests python-dotenv rapidfuzz
 ```
 
 Create a `.env` file in the same directory:

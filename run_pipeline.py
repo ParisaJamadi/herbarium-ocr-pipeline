@@ -11,8 +11,8 @@ Or run everything at once:
   python run_pipeline.py --mode all --sample 30 --gt_sample 20
 
 Requirements:
-  pip install openai pandas openpyxl requests
-  export OPENAI_API_KEY=sk-...
+  pip install openai pandas openpyxl requests python-dotenv rapidfuzz
+  Add OPENAI_API_KEY and ZENODO_ACCESS_TOKEN to .env
 """
 
 import argparse

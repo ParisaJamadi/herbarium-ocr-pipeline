@@ -10,10 +10,16 @@ Usage:
 import openai
 import pandas as pd
 import json
+import re
 import time
 import argparse
 import sys
-from difflib import SequenceMatcher
+from collections import defaultdict
+from rapidfuzz import fuzz  # preferred over difflib.SequenceMatcher:
+                             #   - token_sort_ratio handles word-order differences
+                             #   - better punctuation tolerance
+                             #   - C-extension speed (~10× faster than pure Python)
+                             #   - designed for entity matching (names, places, codes)
 from dotenv import load_dotenv
 
 # Ensure UTF-8 output on Windows consoles
@@ -130,12 +136,97 @@ def normalize(value, field: str) -> str:
 
 
 def fuzzy(a, b, field: str = ""):
-    """Fuzzy string similarity (0–1) with field-aware normalisation. Returns None if either is null."""
+    """Fuzzy string similarity (0–1) with field-aware normalisation. Returns None if either is null.
+
+    Uses fuzz.token_sort_ratio, which:
+      - sorts tokens before comparing, so "Smith J" and "J Smith" score 1.0
+      - is robust to extra punctuation and minor word-order differences
+      - outperforms SequenceMatcher.ratio() for names, places, and codes
+    """
     na = normalize(a, field)
     nb = normalize(b, field)
     if na is None or nb is None:
         return None
-    return SequenceMatcher(None, na, nb).ratio()
+    return fuzz.token_sort_ratio(na, nb) / 100.0
+
+
+def _is_null(v) -> bool:
+    """Return True for any form of null/empty value (None, NaN, 'null', 'none', '')."""
+    if v is None:
+        return True
+    try:
+        if pd.isna(v):
+            return True
+    except (TypeError, ValueError):
+        pass
+    return str(v).strip().lower() in ("null", "none", "nan", "")
+
+
+# Ordered from most-specific to least-specific; first matching rule wins.
+_DATE_FIELDS = {"collection_date", "identification_date", "collection_date_normalized"}
+
+def classify_error(ext_val, gt_val, sim, field: str):
+    """Classify one field comparison into exactly one error category.
+
+    Priority order:
+      1. Null-based  (Missing Extraction / Hallucinated Value)
+      2. Field-specific format differences (Institution Alias / Date / Collector)
+      3. Similarity-based  (Exact Match / Partial Match / Major Mismatch)
+
+    Returns None when both values are null (no comparison possible — not an error).
+    """
+    ext_null = _is_null(ext_val)
+    gt_null  = _is_null(gt_val)
+
+    # --- Null-based categories ---
+    if gt_null and ext_null:
+        return None  # both absent — nothing to classify
+
+    if not gt_null and ext_null:
+        return "Missing Extraction"   # model failed to find a value that exists
+
+    if gt_null and not ext_null:
+        return "Hallucinated Value"   # model invented a value with no GT to support it
+
+    # Both values present from here on; sim must be a float.
+    # --- Field-specific format categories ---
+    if field == "institution_code":
+        # Alias normalisation already resolves RBGE→E etc.; a 1.0 sim on
+        # raw-different strings means the only difference was the alias.
+        raw_ext = str(ext_val).lower().strip()
+        raw_gt  = str(gt_val).lower().strip()
+        if raw_ext != raw_gt and sim is not None and sim >= 0.99:
+            return "Institution Alias Difference"
+
+    if field in _DATE_FIELDS:
+        # Same date expressed in different formats (e.g. "15 Mar 1923" vs "1923-03-15").
+        # Heuristic: both contain the same 4-digit year and the raw strings differ.
+        _YEAR_RE = re.compile(r"\b(1[89]\d\d|20\d\d)\b")
+        ext_years = _YEAR_RE.findall(str(ext_val))
+        gt_years  = _YEAR_RE.findall(str(gt_val))
+        if (ext_years and gt_years and ext_years[0] == gt_years[0]
+                and str(ext_val).lower().strip() != str(gt_val).lower().strip()):
+            return "Date Formatting Difference"
+
+    if field == "collector":
+        # Token-sort normalisation already handles reordering; a high sim on
+        # raw-different strings signals a formatting difference, not a content error.
+        raw_ext = str(ext_val).lower().strip()
+        raw_gt  = str(gt_val).lower().strip()
+        if raw_ext != raw_gt and sim is not None and sim >= 0.7:
+            return "Collector Name Formatting Difference"
+
+    # --- Similarity-based categories ---
+    if sim is None:
+        return "Missing Extraction"  # safety fallback
+
+    if sim >= 1.0:
+        return "Exact Match"
+
+    if sim >= 0.7:
+        return "Partial Match"
+
+    return "Major Mismatch"
 
 
 def extract(client: openai.OpenAI, img_b64: str, media_type: str) -> dict:
@@ -179,6 +270,8 @@ def run_gt_eval(sample_size: int, output_path: str, delay: float = 1.5, verbose:
 
     records = []
     field_sims = {f: [] for f in FIELD_MAP}
+    error_counts       = defaultdict(int)           # global category totals
+    field_error_counts = defaultdict(lambda: defaultdict(int))  # per-field category totals
 
     for i, row in sample.iterrows():
         print(f"[{i+1}/{len(sample)}] {row['occurrenceID']}")
@@ -207,10 +300,18 @@ def run_gt_eval(sample_size: int, output_path: str, delay: float = 1.5, verbose:
                 field_sims[ext_f].append(sim)
                 sims_this_row.append(sim)
 
+            # Classify and record the error category
+            category = classify_error(ext_val, gt_val, sim, field=ext_f)
+            row_result[f"err_{ext_f}"] = category
+            if category is not None:
+                error_counts[category] += 1
+                field_error_counts[ext_f][category] += 1
+
             if verbose:
                 flag = "✓" if sim == 1.0 else ("~" if sim and sim > 0.7 else "✗")
                 sim_str = f"{sim:.2f}" if sim is not None else "N/A"
-                print(f"  {flag} {ext_f}: extracted={ext_val!r}  gt={gt_val!r}  sim={sim_str}")
+                cat_str = f"  [{category}]" if category else ""
+                print(f"  {flag} {ext_f}: extracted={ext_val!r}  gt={gt_val!r}  sim={sim_str}{cat_str}")
 
         row_result["confidence"] = extracted.get("confidence")
         row_result["image_quality"] = extracted.get("image_quality")
@@ -222,10 +323,18 @@ def run_gt_eval(sample_size: int, output_path: str, delay: float = 1.5, verbose:
         if i < len(sample) - 1:
             time.sleep(delay)
 
-    # Save detailed CSV
+    # Save detailed CSV — fall back to timestamped file if locked in Excel
     df_out = pd.DataFrame(records)
     csv_path = output_path.replace(".json", "_detail.csv")
-    df_out.to_csv(csv_path, index=False)
+    try:
+        df_out.to_csv(csv_path, index=False)
+    except PermissionError:
+        import datetime
+        ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        csv_path = csv_path.replace(".csv", f"_{ts}.csv")
+        df_out.to_csv(csv_path, index=False)
+        print(f"\n  ⚠ Could not write to the default CSV — file open in Excel.")
+        print(f"  Saved to '{csv_path}' instead.")
 
     # Build summary
     overall_mean = None
@@ -233,11 +342,21 @@ def run_gt_eval(sample_size: int, output_path: str, delay: float = 1.5, verbose:
     if field_means:
         overall_mean = round(sum(field_means.values()) / len(field_means), 4)
 
+    # Serialise error analysis (convert defaultdict → plain dict for JSON)
+    error_analysis      = dict(sorted(error_counts.items()))
+    field_error_analysis = {
+        field: dict(sorted(cats.items()))
+        for field, cats in field_error_counts.items()
+        if cats
+    }
+
     summary = {
         "model": MODEL,
         "n_evaluated": len(records),
         "field_mean_similarity": field_means,
         "overall_mean_similarity": overall_mean,
+        "error_analysis": error_analysis,
+        "field_error_analysis": field_error_analysis,
     }
 
     with open(output_path, "w") as f:
@@ -258,6 +377,30 @@ def run_gt_eval(sample_size: int, output_path: str, delay: float = 1.5, verbose:
         for f, s in summary["field_mean_similarity"].items():
             bar = "█" * int(s * 20)
             print(f"  {f:<25} {s:.3f}  {bar}")
+
+        # --- Error analysis console section ---
+        print(f"\n=== ERROR ANALYSIS ===")
+        # Define display order so the most actionable categories appear first
+        _ORDER = [
+            "Missing Extraction",
+            "Hallucinated Value",
+            "Major Mismatch",
+            "Partial Match",
+            "Collector Name Formatting Difference",
+            "Date Formatting Difference",
+            "Institution Alias Difference",
+            "Exact Match",
+        ]
+        all_cats = list(_ORDER) + [c for c in error_analysis if c not in _ORDER]
+        for cat in all_cats:
+            if cat in error_analysis:
+                print(f"  {cat:<38} {error_analysis[cat]}")
+
+        print(f"\n=== ERROR ANALYSIS BY FIELD ===")
+        for field, cats in field_error_analysis.items():
+            print(f"  {field}:")
+            for cat, count in cats.items():
+                print(f"    {cat:<36} {count}")
 
     print(f"\nDetailed CSV: {csv_path}")
     print(f"Summary JSON: {output_path}")

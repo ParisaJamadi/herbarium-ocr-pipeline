@@ -122,10 +122,22 @@ def run_extraction(sample_size: int, output_path: str, delay: float = 1.5):
             time.sleep(delay)
 
     df_out = pd.DataFrame(results)
-    df_out.to_csv(output_path, index=False)
+
+    # Try to save; if the file is locked (e.g. open in Excel), fall back to a
+    # timestamped filename so the extracted data is never lost.
+    try:
+        df_out.to_csv(output_path, index=False)
+        saved_path = output_path
+    except PermissionError:
+        import datetime
+        ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        saved_path = output_path.replace(".csv", f"_{ts}.csv")
+        df_out.to_csv(saved_path, index=False)
+        print(f"\n  ⚠ Could not write to '{output_path}' — file is open in another program (e.g. Excel).")
+        print(f"  Saved to '{saved_path}' instead. Close Excel and rename if needed.")
 
     errors = df_out["extraction_error"].notna().sum() if "extraction_error" in df_out.columns else 0
-    print(f"\n✓ Saved {len(df_out)} records to {output_path}")
+    print(f"\n✓ Saved {len(df_out)} records to {saved_path}")
     print(f"  Successful extractions: {len(df_out) - errors}")
     print(f"  Failed (image fetch or API error): {errors}")
 

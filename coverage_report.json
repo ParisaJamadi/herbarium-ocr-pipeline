@@ -14,8 +14,8 @@
       },
       "family": {
         "total_records": 30,
-        "non_null_count": 3,
-        "coverage_percent": 10.0,
+        "non_null_count": 29,
+        "coverage_percent": 96.67,
         "non_empty_count": 30
       },
       "genus": {
@@ -40,8 +40,8 @@
       },
       "collection_date_normalized": {
         "total_records": 30,
-        "non_null_count": 25,
-        "coverage_percent": 83.33,
+        "non_null_count": 24,
+        "coverage_percent": 80.0,
         "non_empty_count": 30
       }
     },
@@ -54,8 +54,8 @@
       },
       "country": {
         "total_records": 30,
-        "non_null_count": 27,
-        "coverage_percent": 90.0,
+        "non_null_count": 28,
+        "coverage_percent": 93.33,
         "non_empty_count": 30
       }
     },
@@ -68,8 +68,8 @@
       },
       "elevation": {
         "total_records": 30,
-        "non_null_count": 14,
-        "coverage_percent": 46.67,
+        "non_null_count": 13,
+        "coverage_percent": 43.33,
         "non_empty_count": 30
       }
     },
@@ -96,20 +96,20 @@
     "Determination": {
       "identified_by": {
         "total_records": 30,
-        "non_null_count": 21,
-        "coverage_percent": 70.0,
+        "non_null_count": 19,
+        "coverage_percent": 63.33,
         "non_empty_count": 30
       },
       "identification_date": {
         "total_records": 30,
-        "non_null_count": 18,
-        "coverage_percent": 60.0,
+        "non_null_count": 17,
+        "coverage_percent": 56.67,
         "non_empty_count": 30
       },
       "field_notes": {
         "total_records": 30,
-        "non_null_count": 20,
-        "coverage_percent": 66.67,
+        "non_null_count": 18,
+        "coverage_percent": 60.0,
         "non_empty_count": 30
       }
     },
@@ -136,21 +136,21 @@
   },
   "field_coverage_overall": {
     "scientific_name": 100.0,
-    "family": 10.0,
+    "family": 96.67,
     "genus": 100.0,
     "collector": 100.0,
     "collection_date": 86.67,
-    "collection_date_normalized": 83.33,
+    "collection_date_normalized": 80.0,
     "locality": 100.0,
-    "country": 90.0,
+    "country": 93.33,
     "habitat": 50.0,
-    "elevation": 46.67,
+    "elevation": 43.33,
     "institution_code": 100.0,
     "barcode": 100.0,
     "type_status": 23.33,
-    "identified_by": 70.0,
-    "identification_date": 60.0,
-    "field_notes": 66.67,
+    "identified_by": 63.33,
+    "identification_date": 56.67,
+    "field_notes": 60.0,
     "label_language": 100.0,
     "image_quality": 100.0,
     "confidence": 100.0
